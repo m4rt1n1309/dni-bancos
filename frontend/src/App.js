@@ -18,7 +18,7 @@ function App() {
     setError('');
     setResultados([]);
     try {
-      const res = await axios.get('https://dni-bancos-1.onrender.com/tesoreros', { params: { nombre } })
+      const res = await axios.get('https://dni-bancos.onrender.com/tesoreros', { params: { nombre } })
       setResultados(res.data);
     } catch (err) {
       setError('Error al buscar tesoreros');
@@ -31,7 +31,7 @@ function App() {
     setMensaje('');
     setError('');
     try {
-      await axios.post('https://dni-bancos-1.onrender.com/tesoreros', { nombre: nuevoNombre, dni: nuevoDni })
+      await axios.post('https://dni-bancos.onrender.com/tesoreros', { nombre: nuevoNombre, dni: nuevoDni })
       setMensaje('Tesorero agregado correctamente');
       setNuevoNombre('');
       setNuevoDni('');
