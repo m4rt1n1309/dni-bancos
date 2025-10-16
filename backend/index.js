@@ -5,7 +5,9 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(cors({
+  origin: 'https://dnibancos.netlify.app'
+}));
 app.use(express.json());
 
 // Inicializar base de datos SQLite
