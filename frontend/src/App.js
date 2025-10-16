@@ -7,13 +7,18 @@ function App() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
 
+  // Estados para agregar tesorero
+  const [nuevoNombre, setNuevoNombre] = useState('');
+  const [nuevoDni, setNuevoDni] = useState('');
+  const [mensaje, setMensaje] = useState('');
+
   const buscarTesoreros = async (e) => {
     e.preventDefault();
     setCargando(true);
     setError('');
     setResultados([]);
     try {
-      const res = await axios.get('http://localhost:3001/tesoreros', {
+      const res = await axios.get('https://dni-bancos-1.onrender.com', {
         params: { nombre }
       });
       setResultados(res.data);
@@ -21,6 +26,27 @@ function App() {
       setError('Error al buscar tesoreros');
     }
     setCargando(false);
+  };
+
+  const agregarTesorero = async (e) => {
+    e.preventDefault();
+    setMensaje('');
+    setError('');
+    try {
+      await axios.post('https://dni-bancos-1.onrender.com', {
+        nombre: nuevoNombre,
+        dni: nuevoDni
+      });
+      setMensaje('Tesorero agregado correctamente');
+      setNuevoNombre('');
+      setNuevoDni('');
+      // Opcional: actualizar resultados si el nombre coincide
+      if (nuevoNombre && nuevoNombre.toLowerCase().includes(nombre.toLowerCase())) {
+        buscarTesoreros({ preventDefault: () => {} });
+      }
+    } catch (err) {
+      setError('Error al agregar tesorero');
+    }
   };
 
   return (
@@ -51,6 +77,32 @@ function App() {
         </ul>
       )}
       {resultados.length === 0 && !cargando && nombre && <p>No se encontraron resultados.</p>}
+
+      <hr style={{ margin: '30px 0' }} />
+
+      <h2>Agregar Tesorero</h2>
+      <form onSubmit={agregarTesorero}>
+        <input
+          type="text"
+          placeholder="Nombre"
+          value={nuevoNombre}
+          onChange={e => setNuevoNombre(e.target.value)}
+          style={{ width: '100%', padding: 8, marginBottom: 10 }}
+          required
+        />
+        <input
+          type="text"
+          placeholder="DNI"
+          value={nuevoDni}
+          onChange={e => setNuevoDni(e.target.value)}
+          style={{ width: '100%', padding: 8, marginBottom: 10 }}
+          required
+        />
+        <button type="submit" style={{ width: '100%', padding: 8 }}>
+          Agregar
+        </button>
+      </form>
+      {mensaje && <p style={{ color: 'green' }}>{mensaje}</p>}
     </div>
   );
 }
