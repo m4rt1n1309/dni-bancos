@@ -1,60 +1,70 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: 'https://dnibancos.netlify.app'
+  origin: process.env.ALLOWED_ORIGIN || 'https://dnibancos.netlify.app'
 }));
 app.use(express.json());
 
-// Inicializar base de datos SQLite
-const db = new sqlite3.Database('./tesoreros.db', (err) => {
-  if (err) {
-    console.error('Error al abrir la base de datos', err);
-  } else {
-    db.run(
-      `CREATE TABLE IF NOT EXISTS tesoreros (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+// Conexión a Postgres
+// Asegúrate de definir DATABASE_URL en el entorno: postgres://user:pass@host:port/dbname
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// Aseguramos la tabla
+(async () => {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS tesoreros (
+        id SERIAL PRIMARY KEY,
         nombre TEXT NOT NULL,
         dni TEXT NOT NULL
-      )`
+      );
+    `);
+    console.log('Tabla tesoreros asegurada en Postgres.');
+  } catch (err) {
+    console.error('Error creando tabla tesoreros:', err);
+  } finally {
+    client.release();
+  }
+})();
+
+// POST /tesoreros
+app.post('/tesoreros', async (req, res) => {
+  const { nombre, dni } = req.body;
+  if (!nombre || !dni) return res.status(400).json({ error: 'nombre y dni requeridos' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO tesoreros (nombre, dni) VALUES ($1, $2) RETURNING id, nombre, dni',
+      [nombre, dni]
     );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('POST /tesoreros error:', err);
+    res.status(500).json({ error: 'Error al insertar tesorero' });
   }
 });
 
-// Endpoint para agregar un tesorero
-app.post('/tesoreros', (req, res) => {
-  const { nombre, dni } = req.body;
-  db.run(
-    'INSERT INTO tesoreros (nombre, dni) VALUES (?, ?)',
-    [nombre, dni],
-    function (err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-      } else {
-        res.json({ id: this.lastID, nombre, dni });
-      }
-    }
-  );
-});
-
-// Endpoint para buscar tesorero por nombre
-app.get('/tesoreros', (req, res) => {
-  const { nombre } = req.query;
-  db.all(
-    'SELECT * FROM tesoreros WHERE nombre LIKE ?',
-    [`%${nombre}%`],
-    (err, rows) => {
-      if (err) {
-        res.status(500).json({ error: err.message });
-      } else {
-        res.json(rows);
-      }
-    }
-  );
+// GET /tesoreros?nombre=...
+app.get('/tesoreros', async (req, res) => {
+  const { nombre = '' } = req.query;
+  try {
+    const result = await pool.query(
+      'SELECT id, nombre, dni FROM tesoreros WHERE nombre ILIKE $1 ORDER BY nombre',
+      [`%${nombre}%`]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('GET /tesoreros error:', err);
+    res.status(500).json({ error: 'Error al consultar tesoreros' });
+  }
 });
 
 app.listen(PORT, () => {
