@@ -6,8 +6,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || 'https://dnibancos.netlify.app'
+  origin: '*'
 }));
+
 app.use(express.json());
 
 // Conexión a MongoDB (MONGODB_URI en env vars)
@@ -62,6 +63,25 @@ app.get('/tesoreros', async (req, res) => {
     res.status(500).json({ error: 'Error al consultar tesoreros' });
   }
 });
+
+// LOGIN hardcodeado
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+
+  // Usuario y contraseña fijos (solo para vos)
+  const USER = 'abcdwxyz';
+  const PASS = 'admin1234ADMIN';
+
+  // Verificamos los datos
+  if (username === USER && password === PASS) {
+    console.log(`✅ Login exitoso para: ${username}`);
+    res.json({ success: true, message: 'Login correcto' });
+  } else {
+    console.log(`❌ Intento de login fallido: ${username}`);
+    res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
+  }
+});
+
 
 // Graceful shutdown
 process.on('SIGINT', async () => {

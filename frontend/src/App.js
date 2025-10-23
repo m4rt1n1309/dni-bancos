@@ -2,23 +2,58 @@ import React, { useState } from 'react';
 import axios from 'axios';
 
 function App() {
+  const [loggedIn, setLoggedIn] = useState(localStorage.getItem('isLoggedIn') === 'true');
+
+  // Estados del login
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  // Estados de búsqueda y agregar tesorero
   const [nombre, setNombre] = useState('');
   const [resultados, setResultados] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
-
-  // Estados para agregar tesorero
   const [nuevoNombre, setNuevoNombre] = useState('');
   const [nuevoDni, setNuevoDni] = useState('');
   const [mensaje, setMensaje] = useState('');
 
+  const backendURL = 'https://dni-bancos.onrender.com'; // cambia si usás otro dominio o puerto
+
+  // --- LOGIN ---
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    try {
+      const res = await axios.post(`${backendURL}/login`, {
+        username,
+        password
+      });
+      if (res.data.success) {
+        localStorage.setItem('isLoggedIn', 'true');
+        setLoggedIn(true);
+      } else {
+        setLoginError('Usuario o contraseña incorrectos');
+      }
+    } catch (err) {
+      console.error(err);
+      setLoginError('Error al conectar con el servidor');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    setLoggedIn(false);
+  };
+
+  // --- TESOREROS ---
   const buscarTesoreros = async (e) => {
     e.preventDefault();
     setCargando(true);
     setError('');
     setResultados([]);
     try {
-      const res = await axios.get('https://dni-bancos.onrender.com/tesoreros', { params: { nombre } })
+      const res = await axios.get(`${backendURL}/tesoreros`, { params: { nombre } });
       setResultados(res.data);
     } catch (err) {
       setError('Error al buscar tesoreros');
@@ -31,11 +66,10 @@ function App() {
     setMensaje('');
     setError('');
     try {
-      await axios.post('https://dni-bancos.onrender.com/tesoreros', { nombre: nuevoNombre, dni: nuevoDni })
+      await axios.post(`${backendURL}/tesoreros`, { nombre: nuevoNombre, dni: nuevoDni });
       setMensaje('Tesorero agregado correctamente');
       setNuevoNombre('');
       setNuevoDni('');
-      // Opcional: actualizar resultados si el nombre coincide
       if (nuevoNombre && nuevoNombre.toLowerCase().includes(nombre.toLowerCase())) {
         buscarTesoreros({ preventDefault: () => {} });
       }
@@ -44,8 +78,45 @@ function App() {
     }
   };
 
+  // --- UI ---
+  if (!loggedIn) {
+    return (
+      <div style={{ maxWidth: 400, margin: '100px auto', fontFamily: 'Arial' }}>
+        <h2>Login</h2>
+        <form onSubmit={handleLogin}>
+          <input
+            type="text"
+            placeholder="Usuario"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            style={{ width: '100%', padding: 8, marginBottom: 10 }}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Contraseña"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={{ width: '100%', padding: 8, marginBottom: 10 }}
+            required
+          />
+          <button type="submit" style={{ width: '100%', padding: 8 }}>
+            Ingresar
+          </button>
+        </form>
+        {loginError && <p style={{ color: 'red' }}>{loginError}</p>}
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 400, margin: '40px auto', fontFamily: 'Arial' }}>
+      <button
+        onClick={handleLogout}
+        style={{ float: 'right', marginBottom: 10, backgroundColor: '#ccc', border: 'none', padding: '6px 10px', cursor: 'pointer' }}
+      >
+        Cerrar sesión
+      </button>
       <h2>Buscar DNI de Tesorero</h2>
       <form onSubmit={buscarTesoreros}>
         <input
