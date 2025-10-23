@@ -5,18 +5,23 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const allowedOrigins = [
+  'https://dnibancos.netlify.app',  // producción
+  'http://localhost:3000'           // desarrollo local
+];
+
 app.use(cors({
-  origin: '*'
+  origin: function(origin, callback){
+    // permitir requests sin origen (como Postman o scripts server-side)
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin) === -1){
+      const msg = `El CORS para ${origin} no está permitido`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
 }));
-
-app.use(express.json());
-
-// Conexión a MongoDB (MONGODB_URI en env vars)
-const MONGODB_URI = process.env.MONGODB_URI;
-if (!MONGODB_URI) {
-  console.error('Falta MONGODB_URI en las variables de entorno.');
-  process.exit(1);
-}
 
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
