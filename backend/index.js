@@ -5,6 +5,8 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use(express.json());
+
 const allowedOrigins = [
   'https://dnibancos.netlify.app',  // producción
   'http://localhost:3000'           // desarrollo local
