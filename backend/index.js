@@ -72,20 +72,13 @@ app.get('/tesoreros', async (req, res) => {
 // LOGIN hardcodeado
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
-
-  // Usuario y contraseña fijos (solo para vos)
-  const USER = 'abcdwxyz';
-  const PASS = 'admin1234ADMIN';
-
-  // Verificamos los datos
-  if (username === USER && password === PASS) {
-    console.log(`✅ Login exitoso para: ${username}`);
-    res.json({ success: true, message: 'Login correcto' });
+  if(username === 'abcdwxyz' && password === 'admin1234ADMIN') {
+    res.json({ success: true });
   } else {
-    console.log(`❌ Intento de login fallido: ${username}`);
-    res.status(401).json({ success: false, message: 'Usuario o contraseña incorrectos' });
+    res.status(401).json({ success: false });
   }
 });
+
 
 
 // Graceful shutdown
