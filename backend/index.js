@@ -17,7 +17,7 @@ if (!MONGODB_URI) {
   process.exit(1);
 }
 
-mongoose.connect(MONGODB_URI, {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
@@ -37,6 +37,7 @@ const Tesorero = mongoose.model('Tesorero', tesoreroSchema);
 
 // POST /tesoreros
 app.post('/tesoreros', async (req, res) => {
+  console.log('Datos recibidos en backend:', req.body);
   const { nombre, dni } = req.body;
   if (!nombre || !dni) return res.status(400).json({ error: 'nombre y dni requeridos' });
   try {
