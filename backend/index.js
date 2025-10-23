@@ -1,5 +1,5 @@
 const express = require('express');
-const { Pool } = require('pg');
+const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
@@ -10,42 +10,39 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Conexión a Postgres
-// Asegúrate de definir DATABASE_URL en el entorno: postgres://user:pass@host:port/dbname
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+// Conexión a MongoDB (MONGODB_URI en env vars)
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  console.error('Falta MONGODB_URI en las variables de entorno.');
+  process.exit(1);
+}
+
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log('Conectado a MongoDB.');
+}).catch(err => {
+  console.error('Error conectando a MongoDB:', err.message || err);
+  process.exit(1);
 });
 
-// Aseguramos la tabla
-(async () => {
-  const client = await pool.connect();
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS tesoreros (
-        id SERIAL PRIMARY KEY,
-        nombre TEXT NOT NULL,
-        dni TEXT NOT NULL
-      );
-    `);
-    console.log('Tabla tesoreros asegurada en Postgres.');
-  } catch (err) {
-    console.error('Error creando tabla tesoreros:', err);
-  } finally {
-    client.release();
-  }
-})();
+// Modelo
+const tesoreroSchema = new mongoose.Schema({
+  nombre: { type: String, required: true },
+  dni: { type: String, required: true }
+}, { timestamps: true });
+
+const Tesorero = mongoose.model('Tesorero', tesoreroSchema);
 
 // POST /tesoreros
 app.post('/tesoreros', async (req, res) => {
   const { nombre, dni } = req.body;
   if (!nombre || !dni) return res.status(400).json({ error: 'nombre y dni requeridos' });
   try {
-    const result = await pool.query(
-      'INSERT INTO tesoreros (nombre, dni) VALUES ($1, $2) RETURNING id, nombre, dni',
-      [nombre, dni]
-    );
-    res.json(result.rows[0]);
+    const t = new Tesorero({ nombre, dni });
+    await t.save();
+    res.json({ id: t._id, nombre: t.nombre, dni: t.dni });
   } catch (err) {
     console.error('POST /tesoreros error:', err);
     res.status(500).json({ error: 'Error al insertar tesorero' });
@@ -56,15 +53,20 @@ app.post('/tesoreros', async (req, res) => {
 app.get('/tesoreros', async (req, res) => {
   const { nombre = '' } = req.query;
   try {
-    const result = await pool.query(
-      'SELECT id, nombre, dni FROM tesoreros WHERE nombre ILIKE $1 ORDER BY nombre',
-      [`%${nombre}%`]
-    );
-    res.json(result.rows);
+    const regex = new RegExp(nombre, 'i');
+    const rows = await Tesorero.find({ nombre: { $regex: regex } }).sort({ nombre: 1 }).select('nombre dni');
+    res.json(rows.map(r => ({ id: r._id, nombre: r.nombre, dni: r.dni })));
   } catch (err) {
     console.error('GET /tesoreros error:', err);
     res.status(500).json({ error: 'Error al consultar tesoreros' });
   }
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('Cerrando conexión a MongoDB...');
+  await mongoose.disconnect();
+  process.exit(0);
 });
 
 app.listen(PORT, () => {
