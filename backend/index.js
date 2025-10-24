@@ -38,25 +38,35 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Modelo
 const tesoreroSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
-  dni: { type: String, required: true }
+  dni: { type: String, required: true, unique: true }
 }, { timestamps: true });
 
 const Tesorero = mongoose.model('Tesorero', tesoreroSchema);
 
 // POST /tesoreros
 app.post('/tesoreros', async (req, res) => {
-  console.log('Datos recibidos en backend:', req.body);
-  const { nombre, dni } = req.body;
-  if (!nombre || !dni) return res.status(400).json({ error: 'nombre y dni requeridos' });
+  let { nombre, dni } = req.body;
+  if (!nombre || !dni) {
+    return res.status(400).json({ error: 'nombre y dni requeridos' });
+  }
+
+  // limpiar DNI
+  dni = dni.replace(/[.\s-]/g, '');
+
   try {
     const t = new Tesorero({ nombre, dni });
     await t.save();
     res.json({ id: t._id, nombre: t.nombre, dni: t.dni });
   } catch (err) {
     console.error('POST /tesoreros error:', err);
+    if (err.code === 11000) {
+      // Error de índice único duplicado
+      return res.status(400).json({ error: 'El DNI ya está registrado' });
+    }
     res.status(500).json({ error: 'Error al insertar tesorero' });
   }
 });
+
 
 // GET /tesoreros?nombre=...
 app.get('/tesoreros', async (req, res) => {

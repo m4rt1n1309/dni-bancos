@@ -61,6 +61,20 @@ function App() {
     setCargando(false);
   };
 
+  const listarTesoreros = async () => {
+  setCargando(true);
+  setError('');
+  setResultados([]);
+  try {
+    const res = await axios.get(`${backendURL}/tesoreros`);
+    setResultados(res.data);
+  } catch (err) {
+    console.error(err);
+    setError('Error al listar tesoreros');
+  }
+  setCargando(false);
+};
+
   const agregarTesorero = async (e) => {
     e.preventDefault();
     setMensaje('');
@@ -130,7 +144,15 @@ function App() {
         <button type="submit" style={{ width: '100%', padding: 8 }}>
           Buscar
         </button>
+        <button
+  type="button"
+  onClick={listarTesoreros}
+  style={{ width: '100%', padding: 8, marginTop: 5, backgroundColor: '#e0e0e0' }}
+>
+  Listar todos
+</button>
       </form>
+      
       {cargando && <p>Buscando...</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {resultados.length > 0 && (
