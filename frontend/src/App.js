@@ -18,6 +18,23 @@ function App() {
   const [nuevoDni, setNuevoDni] = useState('');
   const [mensaje, setMensaje] = useState('');
 
+  const bancos = [
+  "Banco Nación",
+  "Banco Provincia",
+  "Banco Ciudad",
+  "Banco Galicia",
+  "Banco Santander",
+  "BBVA",
+  "Macro",
+  "HSBC",
+  "ICBC",
+  "Banco Patagonia",
+  "Caja Popular de Ahorros"
+];
+
+  const [banco, setBanco] = useState('');
+  const [nuevoBanco, setNuevoBanco] = useState('');
+
   const backendURL = 'https://dni-bancos.onrender.com'; // cambia si usás otro dominio o puerto
 
   // --- LOGIN ---
@@ -48,18 +65,20 @@ function App() {
 
   // --- TESOREROS ---
   const buscarTesoreros = async (e) => {
-    e.preventDefault();
-    setCargando(true);
-    setError('');
-    setResultados([]);
-    try {
-      const res = await axios.get(`${backendURL}/tesoreros`, { params: { nombre } });
-      setResultados(res.data);
-    } catch (err) {
-      setError('Error al buscar tesoreros');
-    }
-    setCargando(false);
-  };
+  e.preventDefault();
+  setCargando(true);
+  setError('');
+  setResultados([]);
+  try {
+    const res = await axios.get(`${backendURL}/tesoreros`, { 
+      params: { nombre: `${nombre} - ${banco}` }
+    });
+    setResultados(res.data);
+  } catch (err) {
+    setError('Error al buscar tesoreros');
+  }
+  setCargando(false);
+};
 
   const listarTesoreros = async () => {
   setCargando(true);
@@ -80,7 +99,10 @@ function App() {
     setMensaje('');
     setError('');
     try {
-      await axios.post(`${backendURL}/tesoreros`, { nombre: nuevoNombre, dni: nuevoDni });
+      await axios.post(`${backendURL}/tesoreros`, { 
+  nombre: `${nuevoBanco} - ${nuevoNombre}`, 
+  dni: nuevoDni 
+});
       setMensaje('Tesorero agregado correctamente');
       setNuevoNombre('');
       setNuevoDni('');
@@ -141,6 +163,14 @@ function App() {
           style={{ width: '100%', padding: 8, marginBottom: 10 }}
           required
         />
+        <select
+          value={banco}
+          onChange={(e) => setBanco(e.target.value)}
+          style={{ width: '100%', padding: 8, marginBottom: 10 }}
+        >
+        <option value="">Seleccione banco</option>
+        {bancos.map(b => <option key={b} value={b}>{b}</option>)}
+        </select>
         <button type="submit" style={{ width: '100%', padding: 8 }}>
           Buscar
         </button>
@@ -170,6 +200,15 @@ function App() {
 
       <h2>Agregar Tesorero</h2>
       <form onSubmit={agregarTesorero}>
+        <select
+  value={nuevoBanco}
+  onChange={(e) => setNuevoBanco(e.target.value)}
+  style={{ width: '100%', padding: 8, marginBottom: 10 }}
+  required
+>
+  <option value="">Seleccione banco</option>
+  {bancos.map(b => <option key={b} value={b}>{b}</option>)}
+</select>
         <input
           type="text"
           placeholder="Nombre"
