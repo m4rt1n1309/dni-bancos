@@ -20,8 +20,7 @@ function App() {
 
   const bancos = [
   "Banco Nación",
-  "Banco Provincia",
-  "Banco Ciudad",
+  "Tarjeta Naranja",
   "Banco Galicia",
   "Banco Santander",
   "BBVA",
